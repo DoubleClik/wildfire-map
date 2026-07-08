@@ -59,5 +59,11 @@ export async function fetchOpenWildfires(
 
     // Parse and return, typed
     const data = (await response.json()) as EonetResponse;
+
+    // Throw an error if the shape of the data doesn't match our interfaces in types.ts
+    if (!Array.isArray(data.events)) {
+        throw new Error("Unexpected EONET response shape: missing events array");
+    }
+
     return data;
 }
