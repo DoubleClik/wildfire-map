@@ -1,7 +1,17 @@
 // src/lib/eonet/types.ts
 
 // Raw EONET Shapes
-interface EonetGeometryPoint {
+export interface EonetCategory {
+    id: string; // i.e. "wildfires"
+    title: string;
+}
+
+export interface EonetSource {
+    id: string; // i.e. "InciWeb"
+    url: string;
+}
+
+export interface EonetGeometryPoint {
     date: string; // ISO timestamp
     type: "Point";
     coordinates: [number, number]; // [lon, lat]
@@ -9,32 +19,22 @@ interface EonetGeometryPoint {
     magnitudeUnit: string | null;
 }
 
-export interface EonetCategory {
-    id: string; // e.g. "wildfires"
-    title: string;
-}
-
-export interface EonetSource {
-    id: string; // e.g. "InciWeb"
-    url: string;
-}
-
 export interface EonetEvent {
-    id: string; // e.g. "EONET_5359"
-    title: string;
+    id: string; // i.e. "EONET_5359"
+    title: string; // i.e. "Wildfire Maze, Madison, Idaho"
     description: string | null;
     link: string;
     closed: string | null; // null = still open, else ISO date
-    // TODO: categories — array of which type above?
-    // TODO: sources — array of which type above?
-    // TODO: geometry — array of which type above?
+    categories: EonetCategory[];
+    sources: EonetSource[];
+    geometry: EonetGeometryPoint[];
 }
 
 export interface EonetResponse {
     title: string;
     description: string;
     link: string;
-    // TODO: events — the mess
+    events: EonetEvent[];
 }
 
 // Cleaned Internal Types
