@@ -1,3 +1,4 @@
+// src/lib/eonet/types.ts
 interface EonetGeometryPoint {
   date: string;                    // ISO timestamp
   type: "Point";
