@@ -2,7 +2,7 @@
 import type { EonetResponse } from "./types";
 
 const EONET_BASE = "https://eonet.gsfc.nasa.gov/api/v3/events";
-const TIMEOUT_MS = 10_000;
+const TIMEOUT_MS = 10000;
 
 interface FetchWildfiresOptions {
     days?: number; // how far back to look (default 60)
@@ -16,37 +16,45 @@ interface FetchWildfiresOptions {
 export async function fetchOpenWildfires(
     options: FetchWildfiresOptions = {},
 ): Promise<EonetResponse> {
-    const { days = 60, bbox } = options;
+    const { days = 60, bbox } = options; // default
 
-    // 1. Build the URL with URLSearchParams
+    // Build the URL with URLSearchParams
+    //    - i.e. Default URL: https://eonet.gsfc.nasa.gov/api/v3/events?category=wildfires&status=open&days=60
     //    - category=wildfires, status=open, days=<days>
-    //    - append bbox only if provided
     const params = new URLSearchParams({
-        // TODO: fill in the query params
+        category: "wildfires",
+        status: "open",
+        days: String(days),
     });
+    //    - append boundingbox params only if provided
+    if (bbox) {
+        params.append("bbox", bbox);
+    }
+
     const url = `${EONET_BASE}?${params.toString()}`;
 
     let response: Response;
     try {
-        // 2. Fetch with a timeout so a slow EONET can't hang your route.
-        //    AbortSignal.timeout(TIMEOUT_MS) aborts the request automatically.
+        // Fetch with a timeout
         response = await fetch(url, {
-            signal: AbortSignal.timeout(TIMEOUT_MS),
-            // TODO (optional): Next.js caching behavior, e.g.
-            // next: { revalidate: 300 }  — or leave default for now
+            signal: AbortSignal.timeout(TIMEOUT_MS), // aborts the request automatically after TIMEOUT_MSdo
+            next: { revalidate: 300 } // be polite to NASA, we'll just reuse the same cached fetch for up to 5 minutes
         });
     } catch (err) {
-        // 3. Distinguish timeout from other network failures.
-        //    A timeout surfaces as an error named "TimeoutError" (a DOMException).
-        // TODO: if (err instanceof DOMException && err.name === "TimeoutError") -> throw a clear "EONET timed out" error
-        // TODO: otherwise → rethrow with a useful "network error reaching EONET" message
-        throw err; // replace with your wrapped errors
+        if (err instanceof DOMException && err.name === "TimeoutError") {
+            throw new Error(`EONET timed out after ${TIMEOUT_MS}ms`);
+        }
+
+        if (err instanceof Error) {
+            throw new Error(`Network error reaching EONET: ${err.message}`);
+        }
+
+        throw new Error("Unknown error reaching EONET");
     }
 
-    // 4. Handle non-200 responses with a useful message
+    // Handle non-200 responses with a useful message
     if (!response.ok) {
-        // TODO: throw an Error including response.status and url
-        //       e.g. `EONET responded ${response.status} for ${url}`
+        throw new Error(`EONET responded ${response.status} for ${url}`);
     }
 
     // 5. Parse and return, typed
