@@ -37,7 +37,7 @@ export async function fetchOpenWildfires(
     try {
         // Fetch with a timeout
         response = await fetch(url, {
-            signal: AbortSignal.timeout(TIMEOUT_MS), // aborts the request automatically after TIMEOUT_MSdo
+            signal: AbortSignal.timeout(TIMEOUT_MS), // aborts the request automatically after TIMEOUT_MS
             next: { revalidate: 300 } // be polite to NASA, we'll just reuse the same cached fetch for up to 5 minutes
         });
     } catch (err) {
@@ -57,9 +57,7 @@ export async function fetchOpenWildfires(
         throw new Error(`EONET responded ${response.status} for ${url}`);
     }
 
-    // 5. Parse and return, typed
-    // TODO: const data = await response.json(); return it as EonetResponse
-    //       (Optionally sanity-check that data.events is an array before returning.)
-
-    return undefined as never; // replace with your return
+    // Parse and return, typed
+    const data = (await response.json()) as EonetResponse;
+    return data;
 }
