@@ -38,17 +38,17 @@ export interface EonetResponse {
 }
 
 // Cleaned Internal Types
-interface Fire {
+export interface Fire {
     id: string;
     title: string;
-    sourceId: string | null;
-    sourceUrl: string | null;
+    sourceId: string | null;  // Currently in normalize.ts, this just takes the first EonetEvent source and flattens it out
+    sourceUrl: string | null; // to represent every source ID and URL (this data isn't displayed, but could be useful later idk)
     status: "open" | "closed";
     track: Observation[]; // ordered oldest to newest
     latest: Observation; // convenience: last element of track
 }
 
-interface Observation {
+export interface Observation {
     date: string;
     lon: number;
     lat: number;
