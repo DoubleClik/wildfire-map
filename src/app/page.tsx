@@ -1,3 +1,7 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import type { Fire } from "@/lib/eonet/types";
 import { Map, MapGeoJSON } from "@/components/ui/map";
 
 // Inline GeoJSON polygon covering a downtown area.
@@ -25,6 +29,45 @@ const area: GeoJSON.FeatureCollection = {
 };
 
 export default function Home() {
+    const [fires, setFires] = useState<Fire[]>([]);
+    const [error, setError] = useState<string | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [days, setDays] = useState(60);
+
+    useEffect(() => {
+        let cancelled = false;
+
+        async function load() {
+            setLoading(true);
+            setError(null);
+
+            try {
+                const res = await fetch(`/api/fires?days=${days}`);
+                const data = await res.json();
+
+                if (cancelled) return;
+
+                if (!res.ok) {
+                    setError(data.error ?? "Failed to load fires");
+                    return;
+                }
+
+                setFires(data.fires);
+            } catch {
+                if (!cancelled) setError("Network error");
+            } finally {
+                if (!cancelled) setLoading(false);
+            }
+        }
+
+        load();
+
+        return () => {
+            cancelled = true;
+        };
+        
+    }, [days]);
+
     return (
         <main className="h-dvh w-full">
             <Map center={[-122.398, 37.785]} zoom={10}>
