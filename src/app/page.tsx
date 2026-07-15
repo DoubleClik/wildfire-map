@@ -1,38 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { Fire } from "@/lib/eonet/types";
-import { Map, MapGeoJSON } from "@/components/ui/map";
-
-// Inline GeoJSON polygon covering a downtown area.
-const area: GeoJSON.FeatureCollection = {
-  type: "FeatureCollection",
-  features: [
-    {
-      type: "Feature",
-      properties: {},
-      geometry: {
-        type: "Polygon",
-        coordinates: [
-          [
-            [-122.42, 37.78],
-            [-122.398, 37.785],
-            [-122.392, 37.768],
-            [-122.412, 37.758],
-            [-122.43, 37.77],
-            [-122.42, 37.78],
-          ],
-        ],
-      },
-    },
-  ],
-};
+import { firesToGeoJSON, type FireProperties } from "@/lib/eonet/toGeoJSON";
+import { Map, MapClusterLayer, MapPopup } from "@/components/ui/map";
 
 export default function Home() {
     const [fires, setFires] = useState<Fire[]>([]);
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
     const [days, setDays] = useState(60);
+    const [selectedFire, setSelectedFire] = useState<Fire | null>(null);
 
     useEffect(() => {
         let cancelled = false;
@@ -68,14 +46,53 @@ export default function Home() {
         
     }, [days]);
 
+    const firesGeoJSON = useMemo(() => firesToGeoJSON(fires), [fires]);
+
     return (
         <main className="h-dvh w-full">
+            {(loading || error) && (
+                <div className="absolute top-4 left-1/2 z-10 -translate-x-1/2 rounded-md bg-white px-3 py-1.5 text-sm shadow-md">
+                    {error ? (
+                        <span className="text-red-600">{error}</span>
+                    ) : (
+                        <span className="text-gray-600">Loading fires…</span>
+                    )}
+                </div>
+            )}
             <Map center={[-122.398, 37.785]} zoom={10}>
-                <MapGeoJSON
-                    data={area}
-                    fillPaint={{ "fill-color": "#3b82f6", "fill-opacity": 0.25 }}
-                    linePaint={{ "line-color": "#2563eb", "line-width": 2 }}
+                <MapClusterLayer<FireProperties>
+                    data={firesGeoJSON}
+                    onPointClick={(feature) => {
+                        const fire = fires.find(
+                            (f) => f.id === feature.properties?.id,
+                        );
+                        if (fire) setSelectedFire(fire);
+                    }}
                 />
+                {selectedFire && (
+                    <MapPopup
+                        longitude={selectedFire.latest.lon}
+                        latitude={selectedFire.latest.lat}
+                        closeButton
+                        onClose={() => setSelectedFire(null)}
+                    >
+                        <div className="space-y-1">
+                            <p className="font-semibold">{selectedFire.title}</p>
+                            <p className="text-muted-foreground text-sm capitalize">
+                                {selectedFire.status}
+                            </p>
+                            <p className="text-muted-foreground text-sm">
+                                {new Date(selectedFire.latest.date).toLocaleString()}
+                            </p>
+                            {selectedFire.latest.magValue != null && (
+                                <p className="text-muted-foreground text-sm">
+                                    {selectedFire.latest.magValue}{" "}
+                                    {selectedFire.latest.magUnit ?? ""}
+                                </p>
+                            )}
+                        </div>
+                    </MapPopup>
+                )}
             </Map>
         </main>
     );
